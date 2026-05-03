@@ -1,226 +1,221 @@
-import { useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { useInView } from 'react-intersection-observer';
-import { Send, CheckCircle, AlertCircle, Loader, Mail, ExternalLink } from 'lucide-react';
-import { saveLead } from '../store/leads';
+import { ArrowRight, Sparkles } from 'lucide-react';
 
-interface FormData {
-  name: string;
-  email: string;
-  instagram: string;
-  type: string;
-  message: string;
+const PARTICLE_COUNT = 50;
+
+function ParticleCanvas() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let animId: number;
+    let W = (canvas.width = window.innerWidth);
+    let H = (canvas.height = window.innerHeight);
+
+    const particles = Array.from({ length: PARTICLE_COUNT }, () => ({
+      x: Math.random() * W,
+      y: Math.random() * H,
+      r: Math.random() * 1.2 + 0.3,
+      dx: (Math.random() - 0.5) * 0.25,
+      dy: (Math.random() - 0.5) * 0.25,
+      alpha: Math.random() * 0.35 + 0.08,
+    }));
+
+    const draw = () => {
+      ctx.clearRect(0, 0, W, H);
+      particles.forEach((p) => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(198,169,107,${p.alpha})`;
+        ctx.fill();
+        p.x += p.dx;
+        p.y += p.dy;
+        if (p.x < 0) p.x = W;
+        if (p.x > W) p.x = 0;
+        if (p.y < 0) p.y = H;
+        if (p.y > H) p.y = 0;
+      });
+      particles.forEach((a, i) => {
+        particles.slice(i + 1).forEach((b) => {
+          const d = Math.hypot(a.x - b.x, a.y - b.y);
+          if (d < 110) {
+            ctx.beginPath();
+            ctx.moveTo(a.x, a.y);
+            ctx.lineTo(b.x, b.y);
+            ctx.strokeStyle = `rgba(198,169,107,${0.05 * (1 - d / 110)})`;
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+          }
+        });
+      });
+      animId = requestAnimationFrame(draw);
+    };
+
+    draw();
+    const onResize = () => {
+      W = canvas.width = window.innerWidth;
+      H = canvas.height = window.innerHeight;
+    };
+    window.addEventListener('resize', onResize);
+    return () => { cancelAnimationFrame(animId); window.removeEventListener('resize', onResize); };
+  }, []);
+
+  return <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none" style={{ opacity: 0.65 }} />;
 }
 
-const InstagramIcon = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
-    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
-    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
-  </svg>
-);
+const stagger = (i: number) => ({
+  initial: { opacity: 0, y: 22 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.7, delay: 0.18 + i * 0.14, ease: 'easeOut' as const },
+});
 
-export default function ContactSection() {
-  const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.08 });
-  const [form, setForm] = useState<FormData>({ name: '', email: '', instagram: '', type: '', message: '' });
-  const [errors, setErrors] = useState<Partial<FormData>>({});
-  const [status, setStatus] = useState<'idle' | 'loading' | 'success'>('idle');
-
-  const validate = () => {
-    const e: Partial<FormData> = {};
-    if (!form.name.trim()) e.name = 'Required';
-    if (!form.email.trim()) e.email = 'Required';
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = 'Invalid email';
-    if (!form.instagram.trim()) e.instagram = 'Required';
-    if (!form.message.trim()) e.message = 'Required';
-    setErrors(e);
-    return Object.keys(e).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validate()) return;
-    setStatus('loading');
-    // Simulate slight network delay for UX
-    await new Promise((r) => setTimeout(r, 900));
-    saveLead({
-      name: form.name.trim(),
-      email: form.email.trim(),
-      instagram: form.instagram.trim().replace(/^@/, ''),
-      type: form.type || 'creator',
-      message: form.message.trim(),
-    });
-    setStatus('success');
-    setForm({ name: '', email: '', instagram: '', type: '', message: '' });
-    setTimeout(() => setStatus('idle'), 6000);
-  };
-
-  const onChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setForm((p) => ({ ...p, [name]: value }));
-    if (errors[name as keyof FormData]) setErrors((p) => ({ ...p, [name]: '' }));
-  };
-
-  const base =
-    'w-full bg-[#0d0d0d] border rounded-xl px-4 py-3 text-[#F5F5F5] text-sm placeholder-[#F5F5F5]/22 focus:outline-none transition-colors duration-200';
-  const field = (f: keyof FormData) =>
-    `${base} ${errors[f] ? 'border-red-500/40 focus:border-red-500/65' : 'border-[#C6A96B]/12 focus:border-[#C6A96B]/42'}`;
+export default function Hero() {
+  const scrollTo = (id: string) =>
+    document.querySelector(id)?.scrollIntoView({ behavior: 'smooth' });
 
   return (
-    <section id="contact" className="py-20 md:py-28 relative overflow-hidden">
-      <div className="absolute inset-0 pointer-events-none"
-        style={{ background: 'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(198,169,107,0.05) 0%, transparent 65%)' }}
+    <section
+      id="hero"
+      className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden"
+    >
+      {/* BG layers */}
+      <div className="absolute inset-0 bg-[#0B0B0B]">
+        <div
+          className="absolute inset-0 animate-glow-pulse"
+          style={{
+            background:
+              'radial-gradient(ellipse 80% 60% at 50% 30%, rgba(198,169,107,0.07) 0%, transparent 70%)',
+          }}
+        />
+        <div
+          className="absolute bottom-0 left-0 w-80 h-80"
+          style={{
+            background:
+              'radial-gradient(circle, rgba(198,169,107,0.04) 0%, transparent 70%)',
+          }}
+        />
+        <div
+          className="absolute top-0 right-0 w-72 h-72"
+          style={{
+            background:
+              'radial-gradient(circle, rgba(198,169,107,0.04) 0%, transparent 70%)',
+          }}
+        />
+      </div>
+
+      {/* Grid */}
+      <div
+        className="absolute inset-0 opacity-[0.018]"
+        style={{
+          backgroundImage:
+            'linear-gradient(rgba(198,169,107,1) 1px, transparent 1px), linear-gradient(90deg, rgba(198,169,107,1) 1px, transparent 1px)',
+          backgroundSize: '72px 72px',
+        }}
       />
 
-      <div className="max-w-6xl mx-auto px-5 sm:px-8">
-        {/* Header */}
-        <motion.div
-          ref={ref}
-          initial={{ opacity: 0, y: 24 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-12"
-        >
-          <span className="badge mb-5 inline-flex">Get Started</span>
-          <h2 className="font-black tracking-tight text-[#F5F5F5] mb-3"
-            style={{ fontSize: 'clamp(1.75rem, 4.5vw, 3rem)' }}>
-            Ready to Start <span className="gold-text">Earning?</span>
-          </h2>
-          <p className="text-[#F5F5F5]/50 mx-auto"
-            style={{ fontSize: 'clamp(0.875rem, 2vw, 1rem)', maxWidth: '32rem' }}>
-            Drop us a message and we'll get back to you within 24 hours. No fluff, just results.
-          </p>
+      <ParticleCanvas />
+
+      {/* Content */}
+      <div className="relative z-10 w-full max-w-4xl mx-auto px-5 sm:px-8 text-center pt-28 pb-20">
+        {/* Badge */}
+        <motion.div {...stagger(0)} className="flex justify-center mb-7">
+          <span className="badge">
+            <Sparkles size={12} />
+            Creator Agency · College Focused
+          </span>
         </motion.div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-10 items-start">
-          {/* Left info */}
-          <motion.div
-            initial={{ opacity: 0, x: -24 }}
-            animate={inView ? { opacity: 1, x: 0 } : {}}
-            transition={{ duration: 0.6, delay: 0.08 }}
-            className="lg:col-span-2 flex flex-col gap-4"
+        {/* Headline — fluid, never wraps awkwardly */}
+        <motion.h1
+          {...stagger(1)}
+          className="font-black tracking-tight leading-[1.05] mb-5"
+          style={{ fontSize: 'clamp(2.4rem, 7vw, 5.5rem)' }}
+        >
+          <span className="text-[#F5F5F5]">Helping College</span>
+          <br />
+          <span className="gold-text">Creators Get Paid</span>
+        </motion.h1>
+
+        {/* Subtext */}
+        <motion.p
+          {...stagger(2)}
+          className="text-[#F5F5F5]/55 leading-relaxed mb-9 mx-auto"
+          style={{ fontSize: 'clamp(0.95rem, 2.2vw, 1.15rem)', maxWidth: '38rem' }}
+        >
+          We turn small creators into earning creators through brand deals and
+          growth strategy.{' '}
+          <span className="text-[#C6A96B]/75">
+            Find Creators. Build Tribes. Grow Brands.
+          </span>
+        </motion.p>
+
+        {/* CTAs */}
+        <motion.div
+          {...stagger(3)}
+          className="flex flex-col sm:flex-row gap-3 justify-center items-center"
+        >
+          <button
+            onClick={() => scrollTo('#contact')}
+            className="btn-gold flex items-center gap-2 px-7 py-3.5 text-sm font-bold w-full sm:w-auto justify-center"
           >
-            <div className="glass p-6 sm:p-7">
-              <h3 className="text-[#F5F5F5] font-bold text-lg mb-2">Let's Talk</h3>
-              <p className="text-[#F5F5F5]/48 text-sm leading-relaxed">
-                Whether you have 500 or 50K followers — if you're serious about monetising your content, we want to hear from you.
-              </p>
-            </div>
-
-            <a href="mailto:tribehunt421@gmail.com"
-              className="glass card-hover flex items-center gap-4 p-5">
-              <div className="w-9 h-9 rounded-lg bg-[#C6A96B]/10 flex items-center justify-center flex-shrink-0">
-                <Mail size={15} className="text-[#C6A96B]" />
-              </div>
-              <div className="min-w-0">
-                <div className="text-[10px] text-[#F5F5F5]/38 uppercase tracking-wider mb-0.5">Email</div>
-                <div className="text-[#F5F5F5] text-sm font-medium truncate">tribehunt421@gmail.com</div>
-              </div>
-            </a>
-
-            <a href="https://www.instagram.com/tribehunt.creators/" target="_blank" rel="noopener noreferrer"
-              className="glass card-hover flex items-center gap-4 p-5">
-              <div className="w-9 h-9 rounded-lg bg-[#C6A96B]/10 flex items-center justify-center flex-shrink-0 text-[#C6A96B]">
-                <InstagramIcon />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-[10px] text-[#F5F5F5]/38 uppercase tracking-wider mb-0.5">Instagram</div>
-                <div className="text-[#F5F5F5] text-sm font-medium">@tribehunt.creators</div>
-              </div>
-              <ExternalLink size={13} className="text-[#C6A96B]/40 flex-shrink-0" />
-            </a>
-
-            <div className="glass p-5 border !border-[#C6A96B]/15">
-              <div className="text-[#C6A96B] font-bold text-xs uppercase tracking-wider mb-2">Our Promise</div>
-              <p className="text-[#F5F5F5]/45 text-xs leading-relaxed">
-                Zero upfront fees. Results-based model. We succeed only when you do.
-              </p>
-            </div>
-          </motion.div>
-
-          {/* Form */}
-          <motion.form
-            onSubmit={handleSubmit}
-            noValidate
-            initial={{ opacity: 0, x: 24 }}
-            animate={inView ? { opacity: 1, x: 0 } : {}}
-            transition={{ duration: 0.6, delay: 0.14 }}
-            className="lg:col-span-3 glass p-6 sm:p-8 border !border-[#C6A96B]/12 relative overflow-hidden"
+            Join as Creator
+            <ArrowRight size={15} />
+          </button>
+          <button
+            onClick={() => scrollTo('#contact')}
+            className="btn-outline flex items-center gap-2 px-7 py-3.5 text-sm w-full sm:w-auto justify-center"
           >
-            <div className="absolute -top-14 -right-14 w-52 h-52 rounded-full pointer-events-none"
-              style={{ background: 'radial-gradient(circle, rgba(198,169,107,0.06) 0%, transparent 70%)' }}
-            />
+            Work with Us
+            <ArrowRight size={15} />
+          </button>
+        </motion.div>
 
-            <div className="relative z-10 flex flex-col gap-4">
-              {/* Row 1: Name + Email */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] text-[#F5F5F5]/42 uppercase tracking-wider mb-1.5 font-semibold">Full Name *</label>
-                  <input name="name" value={form.name} onChange={onChange}
-                    placeholder="Your name" className={field('name')} />
-                  {errors.name && <p className="text-red-400/80 text-xs mt-1 flex items-center gap-1"><AlertCircle size={10} />{errors.name}</p>}
-                </div>
-                <div>
-                  <label className="block text-[10px] text-[#F5F5F5]/42 uppercase tracking-wider mb-1.5 font-semibold">Email *</label>
-                  <input name="email" type="email" value={form.email} onChange={onChange}
-                    placeholder="you@email.com" className={field('email')} />
-                  {errors.email && <p className="text-red-400/80 text-xs mt-1 flex items-center gap-1"><AlertCircle size={10} />{errors.email}</p>}
-                </div>
-              </div>
-
-              {/* Row 2: Instagram + Type */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] text-[#F5F5F5]/42 uppercase tracking-wider mb-1.5 font-semibold">Instagram Handle *</label>
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#C6A96B]/50 text-sm select-none">@</span>
-                    <input name="instagram" value={form.instagram} onChange={onChange}
-                      placeholder="yourhandle" className={`${field('instagram')} pl-8`} />
-                  </div>
-                  {errors.instagram && <p className="text-red-400/80 text-xs mt-1 flex items-center gap-1"><AlertCircle size={10} />{errors.instagram}</p>}
-                </div>
-                <div>
-                  <label className="block text-[10px] text-[#F5F5F5]/42 uppercase tracking-wider mb-1.5 font-semibold">I am a…</label>
-                  <select name="type" value={form.type} onChange={onChange}
-                    className={`${base} border-[#C6A96B]/12 focus:border-[#C6A96B]/42`}
-                    style={{ color: form.type ? '#F5F5F5' : 'rgba(245,245,245,0.22)' }}>
-                    <option value="" disabled>Select type</option>
-                    <option value="creator" style={{ color: '#F5F5F5', background: '#111' }}>College Creator</option>
-                    <option value="brand" style={{ color: '#F5F5F5', background: '#111' }}>Brand / Agency</option>
-                    <option value="other" style={{ color: '#F5F5F5', background: '#111' }}>Other</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Message */}
-              <div>
-                <label className="block text-[10px] text-[#F5F5F5]/42 uppercase tracking-wider mb-1.5 font-semibold">Message *</label>
-                <textarea name="message" value={form.message} onChange={onChange} rows={4}
-                  placeholder="Tell us about yourself, your niche, and what you want to achieve..."
-                  className={`${field('message')} resize-none`} />
-                {errors.message && <p className="text-red-400/80 text-xs mt-1 flex items-center gap-1"><AlertCircle size={10} />{errors.message}</p>}
-              </div>
-
-              {/* Submit */}
-              <button
-                type="submit"
-                disabled={status === 'loading' || status === 'success'}
-                className={`w-full py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2.5 transition-all duration-300 disabled:opacity-60 ${
-                  status === 'success'
-                    ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 cursor-default'
-                    : 'btn-gold'
-                }`}
+        {/* Stats strip */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1, delay: 1.1 }}
+          className="mt-14 flex items-center justify-center gap-10 sm:gap-16"
+        >
+          {[
+            { value: '50+', label: 'Creators' },
+            { value: '100+', label: 'Brand Deals' },
+            { value: '$0', label: 'Upfront Fees' },
+          ].map((s, i) => (
+            <div key={i} className="text-center">
+              <div
+                className="font-black text-[#C6A96B] leading-none"
+                style={{ fontSize: 'clamp(1.5rem, 3.5vw, 2.2rem)' }}
               >
-                {status === 'loading' && <><Loader size={15} className="animate-spin" />Sending…</>}
-                {status === 'success' && <><CheckCircle size={15} />Sent! We'll reach out within 24 hrs.</>}
-                {status === 'idle' && <><Send size={15} />Send Message</>}
-              </button>
-
-              <p className="text-center text-[#F5F5F5]/22 text-xs">We reply within 24 hours · No spam, ever.</p>
+                {s.value}
+              </div>
+              <div className="text-[#F5F5F5]/38 text-xs tracking-widest uppercase mt-1.5">
+                {s.label}
+              </div>
             </div>
-          </motion.form>
-        </div>
+          ))}
+        </motion.div>
       </div>
+
+      {/* Scroll cue */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.6 }}
+        className="absolute bottom-7 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5"
+      >
+        <span className="text-[#F5F5F5]/22 text-[10px] tracking-[0.2em] uppercase">scroll</span>
+        <motion.div
+          animate={{ y: [0, 7, 0] }}
+          transition={{ repeat: Infinity, duration: 1.8, ease: 'easeInOut' }}
+          className="w-px h-8 bg-gradient-to-b from-[#C6A96B]/35 to-transparent"
+        />
+      </motion.div>
     </section>
   );
 }
