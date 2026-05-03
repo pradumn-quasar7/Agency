@@ -1,0 +1,165 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --gold: #C6A96B;
+    --gold-light: #D4BC8A;
+    --gold-dark: #A8893F;
+    --black: #0B0B0B;
+    --off-white: #F5F5F5;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: #0B0B0B;
+    color: #F5F5F5;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    line-height: 1.5;
+  }
+
+  ::selection {
+    background: rgba(198, 169, 107, 0.2);
+    color: #C6A96B;
+  }
+
+  ::-webkit-scrollbar { width: 3px; }
+  ::-webkit-scrollbar-track { background: #0B0B0B; }
+  ::-webkit-scrollbar-thumb { background: rgba(198,169,107,0.3); border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(198,169,107,0.55); }
+}
+
+@layer utilities {
+  /* Gold gradient text */
+  .gold-text {
+    background: linear-gradient(135deg, #C6A96B 0%, #E2CC98 50%, #C6A96B 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Glass card */
+  .glass {
+    background: rgba(255, 255, 255, 0.025);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(198, 169, 107, 0.1);
+    border-radius: 20px;
+  }
+
+  /* Card hover — NO transform so framer-motion doesn't fight it */
+  .card-hover {
+    transition: border-color 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
+  }
+  .card-hover:hover {
+    border-color: rgba(198, 169, 107, 0.28);
+    background: rgba(198, 169, 107, 0.045);
+    box-shadow: 0 16px 48px rgba(198, 169, 107, 0.08);
+  }
+
+  /* Button glow */
+  .btn-gold {
+    background: #C6A96B;
+    color: #0B0B0B;
+    font-weight: 700;
+    border-radius: 9999px;
+    transition: background 0.25s ease, box-shadow 0.25s ease, transform 0.2s ease;
+  }
+  .btn-gold:hover {
+    background: #D4BC8A;
+    box-shadow: 0 0 24px rgba(198,169,107,0.35);
+    transform: translateY(-1px);
+  }
+  .btn-gold:active { transform: translateY(0); }
+
+  .btn-outline {
+    border: 1px solid rgba(198,169,107,0.3);
+    color: #F5F5F5;
+    font-weight: 600;
+    border-radius: 9999px;
+    transition: border-color 0.25s ease, color 0.25s ease, background 0.25s ease, transform 0.2s ease;
+  }
+  .btn-outline:hover {
+    border-color: rgba(198,169,107,0.65);
+    color: #C6A96B;
+    background: rgba(198,169,107,0.06);
+    transform: translateY(-1px);
+  }
+
+  /* Section badge */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 14px;
+    border-radius: 9999px;
+    border: 1px solid rgba(198,169,107,0.22);
+    background: rgba(198,169,107,0.06);
+    color: #C6A96B;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  /* Divider line */
+  .divider {
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(198,169,107,0.12), transparent);
+  }
+
+  /* Noise overlay */
+  .noise::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    opacity: 0.025;
+    pointer-events: none;
+    z-index: 9999;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+}
+
+/* Floating animation */
+@keyframes floatY {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+.animate-float { animation: floatY 5s ease-in-out infinite; }
+
+/* Pulse glow */
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 0.5; }
+}
+.animate-glow-pulse { animation: pulseGlow 4s ease-in-out infinite; }
+
+/* Shimmer on text */
+@keyframes shimmer {
+  to { background-position: 200% center; }
+}
+.text-shimmer {
+  background: linear-gradient(90deg, #C6A96B 0%, #E2CC98 40%, #C6A96B 80%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 3.5s linear infinite;
+}
+
+/* Scroll fade-up utility — used with JS intersection */
+.fade-up-init {
+  opacity: 0;
+  transform: translateY(28px);
+}
